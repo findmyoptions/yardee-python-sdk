@@ -1,0 +1,269 @@
+"""
+Yardee Python SDK - Quickstart Example
+
+This example demonstrates core functionality of the Yardee Python SDK.
+Replace 'your-api-key-here' with your actual API key from app.yardee.ai
+"""
+
+import os
+from yardee import Client, YardeeError
+
+def main():
+    # Initialize the client
+    api_key = os.getenv("YARDEE_API_KEY", "sk-your-api-key-here")
+    
+    if api_key == "sk-your-api-key-here":
+        print("⚠️  Please set your API key!")
+        print("   Option 1: Set environment variable: export YARDEE_API_KEY=sk-your-key")
+        print("   Option 2: Replace 'sk-your-api-key-here' in this file")
+        print("   Get your API key at: https://app.yardee.ai")
+        return
+    
+    # Create client
+    client = Client(api_key=api_key)
+    print("🚀 Yardee SDK Quickstart Example")
+    print("=" * 50)
+    
+    try:
+        # 1. List existing knowledge bases
+        print("\n📚 Your Knowledge Bases:")
+        kb_list = client.list_knowledge_bases()
+        
+        if kb_list['count'] == 0:
+            print("   No knowledge bases found. Let's create one!")
+            
+            # Create a new knowledge base
+            new_kb = client.create_knowledge_base(
+                name="SDK Test KB",
+                description="Test knowledge base created by Python SDK"
+            )
+            print(f"✅ Created knowledge base: {new_kb['name']} (ID: {new_kb['id']})")
+            kb_id = new_kb['id']
+            
+        else:
+            # Use the first existing knowledge base
+            kb = kb_list['knowledge_bases'][0]
+            kb_id = kb['id']
+            print(f"📖 Using existing KB: {kb['name']} (ID: {kb_id})")
+            
+            # Show all knowledge bases
+            for kb in kb_list['knowledge_bases']:
+                print(f"   - {kb['name']} (ID: {kb['id']}) - {kb.get('document_count', 0)} documents")
+        
+        # 2. List documents in the knowledge base
+        print(f"\n📄 Documents in Knowledge Base {kb_id}:")
+        documents = client.list_documents(kb_id)
+        
+        if documents['count'] == 0:
+            print("   No documents found in this knowledge base.")
+            print("   💡 Upload some documents to enable search functionality!")
+        else:
+            for doc in documents['documents']:
+                print(f"   - {doc['filename']} (ID: {doc['id']}) - {doc.get('chunk_count', 0)} chunks")
+        
+        # 3. Perform a search (even if no documents - will show empty results)
+        print(f"\n🔍 Testing Search Functionality:")
+        
+        test_queries = [
+            "How do I get started?",
+            "What are the pricing plans?", 
+            "API documentation",
+            "customer support contact"
+        ]
+        
+        for query in test_queries[:2]:  # Test first 2 queries
+            print(f"\n   Query: '{query}'")
+            
+            try:
+                results = client.search(
+                    knowledge_base_id=kb_id,
+                    query=query,
+                    top_k=3,
+                    similarity_threshold=0.1
+                )
+                
+                if results['results']:
+                    print(f"   ✅ Found {len(results['results'])} results:")
+                    for i, result in enumerate(results['results'], 1):
+                        score = result.get('similarity_score', 'N/A')
+                        content_preview = result['content'][:100] + "..." if len(result['content']) > 100 else result['content']
+                        print(f"      {i}. Score: {score}")
+                        print(f"         Preview: {content_preview}")
+                        
+                        # Show metadata if available
+                        if 'metadata' in result and result['metadata']:
+                            metadata = result['metadata']
+                            if isinstance(metadata, dict):
+                                for key, value in list(metadata.items())[:2]:  # Show first 2 metadata fields
+                                    print(f"         {key}: {value}")
+                else:
+                    print("   📭 No results found (knowledge base may be empty)")
+                    
+            except YardeeError as e:
+                print(f"   ❌ Search error: {e}")
+        
+        # 4. Test connection features (if available)
+        print(f"\n🔗 Testing Connection Features:")
+        try:
+            connections = client.list_connections(kb_id)
+            print(f"   📊 Found {len(connections.get('connections', []))} existing connections")
+            
+            # Show connection types
+            for conn in connections.get('connections', [])[:3]:  # Show first 3
+                conn_type = conn.get('db_type', 'unknown')
+                status = conn.get('status', 'unknown')
+                print(f"   - {conn['name']} ({conn_type}) - {status}")
+            
+            if not connections.get('connections'):
+                print("   💡 No connections found. You can add:")
+                print("      • PostgreSQL/MySQL databases for live data queries")
+                print("      • HubSpot CRM for customer data access")
+                print("      • All queryable through the same search endpoint!")
+            
+        except YardeeError as e:
+            print(f"   📝 Connection info: {e}")
+        
+        # 5. Advanced search example (with metadata filters)
+        print(f"\n🎯 Advanced Search with Filters:")
+        try:
+            advanced_results = client.search(
+                knowledge_base_id=kb_id,
+                query="documentation",
+                top_k=5,
+                similarity_threshold=0.1,
+                use_mmr=True,  # Maximum Marginal Relevance for diverse results
+                metadata_filters={"type": "guide"}  # Example filter
+            )
+            
+            print(f"   ✅ Advanced search completed")
+            print(f"   📊 Results: {len(advanced_results['results'])}")
+            print(f"   🎛️  Used MMR for result diversity")
+            
+        except YardeeError as e:
+            print(f"   ⚠️  Advanced search note: {e}")
+        
+        # 6. Show SDK capabilities
+        print(f"\n🛠 SDK Capabilities Demonstrated:")
+        print("   ✅ Client initialization with API key")
+        print("   ✅ Knowledge base listing and creation")  
+        print("   ✅ Document management")
+        print("   ✅ Basic semantic search")
+        print("   ✅ Connection management (DB + HubSpot)")
+        print("   ✅ Advanced search with filters")
+        print("   ✅ Error handling")
+        
+        print(f"\n🎉 Quickstart Complete!")
+        print("   Next steps:")
+        print("   1. Upload documents to your knowledge base")
+        print("   2. Connect databases or HubSpot for live data")
+        print("   3. Try different search queries")
+        print("   4. Integrate into your application")
+        print("   5. Check out the full documentation")
+        
+        # Get KB details
+        kb_details = client.get_knowledge_base(kb_id)
+        print(f"\n📊 Knowledge Base Details:")
+        print(f"   Name: {kb_details['name']}")
+        print(f"   Description: {kb_details.get('description', 'No description')}")
+        print(f"   Documents: {kb_details.get('document_count', 0)}")
+        print(f"   Created: {kb_details.get('created_at', 'Unknown')}")
+        
+    except YardeeError as e:
+        print(f"❌ Yardee API Error: {e}")
+        print("   Check your API key and network connection")
+        
+    except Exception as e:
+        print(f"💥 Unexpected Error: {e}")
+        print("   Please check the error details and try again")
+        
+    finally:
+        # Clean up
+        client.close()
+        print("\n🔒 Connection closed")
+
+
+# Helper function for connection demos
+def demo_database_connection(client, kb_id):
+    """
+    Example function to create a database connection.
+    
+    Args:
+        client: Yardee client instance
+        kb_id: Knowledge base ID
+    """
+    try:
+        print("📊 Creating PostgreSQL connection demo...")
+        
+        db_conn = client.create_database_connection(
+            knowledge_base_id=kb_id,
+            name="Demo PostgreSQL",
+            db_type="postgres",
+            host="demo.postgres.com",
+            port=5432,
+            database="demo_db",
+            username="demo_user",
+            password="demo_password"
+        )
+        
+        print(f"✅ Database connection created! ID: {db_conn['id']}")
+        
+        # Test the connection
+        test_result = client.test_connection(kb_id, db_conn['id'])
+        if test_result['success']:
+            print("✅ Connection test passed!")
+        else:
+            print(f"⚠️  Connection test failed: {test_result.get('error', 'Unknown error')}")
+        
+        return db_conn
+        
+    except Exception as e:
+        print(f"❌ Database connection demo failed: {e}")
+        return None
+
+
+def demo_hubspot_connection(client, kb_id):
+    """
+    Example function to create a HubSpot connection.
+    
+    Args:
+        client: Yardee client instance
+        kb_id: Knowledge base ID
+    """
+    try:
+        hubspot_token = os.getenv("HUBSPOT_PRIVATE_APP_TOKEN")
+        
+        if not hubspot_token:
+            print("⚠️  No HUBSPOT_PRIVATE_APP_TOKEN environment variable found")
+            print("   Get your token from HubSpot Settings → Integrations → Private Apps")
+            return None
+        
+        print("🚀 Creating HubSpot connection...")
+        
+        hubspot_conn = client.create_hubspot_connection(
+            knowledge_base_id=kb_id,
+            name="Demo HubSpot CRM",
+            private_app_token=hubspot_token
+        )
+        
+        print(f"✅ HubSpot connection created! ID: {hubspot_conn['id']}")
+        
+        # Test the connection
+        test_result = client.test_connection(kb_id, hubspot_conn['id'])
+        if test_result['success']:
+            print("✅ HubSpot connection test passed!")
+        else:
+            print(f"⚠️  HubSpot test failed: {test_result.get('error', 'Unknown error')}")
+        
+        return hubspot_conn
+        
+    except Exception as e:
+        print(f"❌ HubSpot connection demo failed: {e}")
+        return None
+
+
+if __name__ == "__main__":
+    print("Yardee Python SDK - Quickstart Example")
+    print("Get your API key at: https://app.yardee.ai")
+    print()
+    
+    main()
