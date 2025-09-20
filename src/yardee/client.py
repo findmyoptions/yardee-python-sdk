@@ -81,7 +81,7 @@ class Client:
         self.session.headers.update({
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "User-Agent": "yardee-python-sdk/0.1.0"
+            "User-Agent": "yardee-python-sdk/0.1.1"
         })
     
     def _make_request(

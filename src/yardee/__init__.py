@@ -17,7 +17,7 @@ Get your API key at: https://app.yardee.ai
 
 from .client import Client, YardeeError, AuthenticationError, APIError, RateLimitError
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __author__ = "Yardee Team"
 __email__ = "support@yardee.ai"
 __all__ = [
